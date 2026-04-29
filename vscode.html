@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расширение VS Code — Глаголица</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => hljs.highlightAll());
+    </script>
+    <style>
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+        .feature-list li {
+            padding: 10px 0 10px 32px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 8px;
+            top: 10px;
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .keyword-group {
+            background: var(--bg-soft);
+            border-left: 4px solid var(--accent);
+            padding: 14px 20px;
+            margin: 12px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .keyword-group strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .keyword-group code {
+            background: white;
+            border: 1px solid var(--code-border);
+            margin: 2px 4px 2px 0;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="site-header-inner">
+        <a href="index.html" class="logo-link">
+            <img src="assets/logo.png" alt="Логотип Глаголицы">
+            <span>Глаголица</span>
+        </a>
+        <nav class="site-nav">
+            <a href="index.html">О проекте</a>
+            <a href="documentation.html">Документация</a>
+            <a href="implementation.html">Техническая реализация</a>
+            <a href="examples.html">Примеры программ</a>
+            <a href="vscode.html" class="active">Расширение VS Code</a>
+        </nav>
+    </div>
+</header>
+
+<main class="content">
+
+    <h1>Расширение для VS Code</h1>
+    <p class="lead">
+        Подсветка синтаксиса, иконка файлов <code>.gl</code> и быстрый запуск программ
+        прямо из редактора.
+    </p>
+
+    <h2>Возможности</h2>
+    <ul class="feature-list">
+        <li>Подсветка синтаксиса для всех ключевых слов на русском языке</li>
+        <li>Подсветка строк, чисел и комментариев (<code>комментарий:</code> и <code>комментарий { }</code>)</li>
+        <li>Подсветка операторов</li>
+        <li>Иконка логотипа Глаголицы для файлов <code>.gl</code></li>
+        <li>Автозакрытие скобок <code>( )</code>, <code>[ ]</code>, <code>{ }</code></li>
+        <li>Команда «Запустить файл Глаголицы» с горячей клавишей <code>Ctrl+Alt+N</code></li>
+        <li>Пункт запуска в контекстном меню редактора и проводника</li>
+    </ul>
+
+    <h2>Как запустить расширение в режиме разработки</h2>
+    <ol>
+        <li>
+            Откройте папку <code>extension_vscode/</code> в VS Code:
+<pre><code class="language-bash">code путь/к/проекту/extension_vscode</code></pre>
+        </li>
+        <li>Нажмите <strong>F5</strong> (или меню <strong>Run → Start Debugging</strong>).</li>
+        <li>
+            Откроется новое окно VS Code с активным расширением — оно называется
+            <strong>«[Extension Development Host]»</strong>.
+        </li>
+        <li>
+            В новом окне откройте любой <code>.gl</code> файл (например, <code>examples/hello.gl</code>) — увидите:
+            <ul>
+                <li>подсветку ключевых слов;</li>
+                <li>язык <strong>Glagol</strong> в правом нижнем углу;</li>
+                <li>иконку логотипа рядом с файлами <code>.gl</code> в проводнике.</li>
+            </ul>
+        </li>
+        <li>
+            Чтобы увидеть <strong>иконку файла</strong>, в новом окне выполните команду
+            <strong>File → Preferences → Theme → File Icon Theme → Glagol Icons</strong>.
+        </li>
+    </ol>
+
+    <h2>Постоянная установка</h2>
+
+    <h3>Способ 1. Скопировать в папку расширений</h3>
+    <p>Скопируйте папку <code>extension_vscode</code> в:</p>
+    <ul>
+        <li><strong>Windows:</strong> <code>%USERPROFILE%\.vscode\extensions\glagol-language-0.0.1</code></li>
+        <li><strong>Linux/macOS:</strong> <code>~/.vscode/extensions/glagol-language-0.0.1</code></li>
+    </ul>
+    <p>После этого перезапустите VS Code.</p>
+
+    <h3>Способ 2. Упаковать в <code>.vsix</code></h3>
+<pre><code class="language-bash"># Установите упаковщик расширений
+npm install -g @vscode/vsce
+
+# В папке extension_vscode/ выполните:
+vsce package</code></pre>
+    <p>Получите файл <code>glagol-language-0.0.1.vsix</code>. Установите его так:</p>
+<pre><code class="language-bash">code --install-extension glagol-language-0.0.1.vsix</code></pre>
+
+    <h2>Структура расширения</h2>
+<pre><code class="language-text">extension_vscode/
+├── package.json                       # манифест
+├── language-configuration.json        # скобки, комментарии, отступы
+├── extension.js                       # код активации (команда запуска)
+├── syntaxes/
+│   └── glagol.tmLanguage.json         # грамматика подсветки
+├── icons/
+│   └── glagol-icon-theme.json         # тема иконок файлов
+├── Glagol_logo_png.png                # логотип PNG
+├── Glagol_logo_svg.svg                # логотип SVG
+└── SYNTAX.md                          # описание синтаксиса языка</code></pre>
+
+    <h2>Поддерживаемые ключевые слова</h2>
+
+    <div class="keyword-group">
+        <strong>Управление потоком</strong>
+        <code>ПУСТЬ</code> <code>В</code> <code>ЕСЛИ</code> <code>ТО</code>
+        <code>ИНАЧЕ</code> <code>СОПОСТАВИТЬ</code> <code>С</code> <code>КОГДА</code>
+        <code>ДЛЯ</code>
+    </div>
+
+    <div class="keyword-group">
+        <strong>Логика и константы</strong>
+        <code>И</code> <code>ИЛИ</code> <code>ИСТИНА</code> <code>ЛОЖЬ</code> <code>ПУСТО</code>
+    </div>
+
+    <div class="keyword-group">
+        <strong>Асинхронность и обработка ошибок</strong>
+        <code>ФОНОМ</code> <code>ДОЖДАТЬСЯ</code> <code>УСПЕХ</code> <code>ПРОВАЛ</code>
+        <code>ТРЕБОВАТЬ</code>
+    </div>
+
+    <div class="keyword-group">
+        <strong>Функциональное программирование</strong>
+        <code>ВАРИАНТЫ</code> <code>ДАЛЕЕ</code> <code>ДАЛЕЕ_УСПЕШНО</code> <code>&gt;&gt;?</code>
+    </div>
+
+    <div class="keyword-group">
+        <strong>Модули и типы</strong>
+        <code>ИМПОРТ</code> <code>ТИП</code>
+    </div>
+
+    <div class="keyword-group">
+        <strong>Коллекции</strong>
+        <code>ОТ_ДО</code>
+    </div>
+
+    <div class="keyword-group">
+        <strong>Встроенные функции</strong>
+        <code>вывод</code> <code>чтение</code> <code>читать_файл</code>
+        <code>отобразить</code> <code>отфильтровать</code> <code>свернуть</code>
+        <code>взять_пока</code>
+    </div>
+
+    <h2>Команда запуска</h2>
+    <p>
+        Расширение регистрирует команду <strong>Glagol: Запустить файл Глаголицы</strong>,
+        которая запускает текущий <code>.gl</code>-файл через интерпретатор.
+        Способы её вызова:
+    </p>
+    <ul>
+        <li>горячая клавиша <code>Ctrl+Alt+N</code> в открытом <code>.gl</code>-файле,</li>
+        <li>контекстное меню редактора (правый клик по коду),</li>
+        <li>контекстное меню проводника (правый клик по файлу <code>.gl</code>),</li>
+        <li>кнопка ▶ в правом верхнем углу редактора.</li>
+    </ul>
+
+    <h2>Что дальше</h2>
+    <p>
+        Чтобы увидеть подсветку в действии, откройте любой пример из директории
+        <code>examples/Glagol_examples/</code> — все 15 программ описаны в разделе
+        <a href="examples.html">Примеры программ</a>.
+    </p>
+    <p>
+        Если вы только начинаете знакомиться с языком, загляните сначала в
+        <a href="documentation.html">Документацию</a> — там описаны все конструкции
+        с примерами.
+    </p>
+
+</main>
+
+</body>
+</html>

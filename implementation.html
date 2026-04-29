@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Техническая реализация — Глаголица</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("pre code.language-glagol").forEach(b => b.classList.replace("language-glagol", "language-fsharp"));
+            hljs.highlightAll();
+        });
+    </script>
+    <style>
+        .ascii-diagram {
+            font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="site-header-inner">
+        <a href="index.html" class="logo-link">
+            <img src="assets/logo.png" alt="Логотип Глаголицы">
+            <span>Глаголица</span>
+        </a>
+        <nav class="site-nav">
+            <a href="index.html">О проекте</a>
+            <a href="documentation.html">Документация</a>
+            <a href="implementation.html" class="active">Техническая реализация</a>
+            <a href="examples.html">Примеры программ</a>
+            <a href="vscode.html">Расширение VS Code</a>
+        </nav>
+    </div>
+</header>
+
+<main class="content">
+
+    <h1>Техническая реализация</h1>
+    <p class="lead">
+        Как устроен интерпретатор Глаголицы изнутри: парсер, AST, вычислитель и центральная идея List-монады.
+    </p>
+
+    <h2>Введение</h2>
+    <p>
+        Глаголица реализована в виде интерпретатора на языке <strong>F#</strong> (.NET 10).
+        Архитектура классическая для функциональных интерпретаторов: исходный код проходит через
+        парсер, превращается в абстрактное синтаксическое дерево (<em>AST</em>),
+        затем дерево обходится вычислителем, который порождает значения.
+    </p>
+    <p>
+        Парсер построен на библиотеке <strong>FParsec</strong> — это комбинаторный парсер на F#,
+        в котором правила грамматики описываются как обычные функции. Никаких внешних
+        кодогенераторов (<em>yacc/bison/ANTLR</em>) не используется.
+    </p>
+    <p>Весь интерпретатор умещается в пять модулей:</p>
+    <table>
+        <thead>
+            <tr><th>Файл</th><th>Назначение</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><a href="https://github.com/&lt;USER&gt;/&lt;REPO&gt;/blob/main/src/Ast.fs"><code>src/Ast.fs</code></a></td><td>Определение типов AST (<code>Expr</code>, <code>Pattern</code>)</td></tr>
+            <tr><td><a href="https://github.com/&lt;USER&gt;/&lt;REPO&gt;/blob/main/src/Parser.fs"><code>src/Parser.fs</code></a></td><td>Парсер исходного кода в AST на основе FParsec</td></tr>
+            <tr><td><a href="https://github.com/&lt;USER&gt;/&lt;REPO&gt;/blob/main/src/Evaluator.fs"><code>src/Evaluator.fs</code></a></td><td>Вычислитель AST + встроенные функции и среда исполнения</td></tr>
+            <tr><td><a href="https://github.com/&lt;USER&gt;/&lt;REPO&gt;/blob/main/src/TypeChecker.fs"><code>src/TypeChecker.fs</code></a></td><td>Базовая проверка типов (заглушка для расширения)</td></tr>
+            <tr><td><a href="https://github.com/&lt;USER&gt;/&lt;REPO&gt;/blob/main/src/Program.fs"><code>src/Program.fs</code></a></td><td>Точка входа: чтение файла, REPL, печать результатов</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Содержание</h2>
+    <ol>
+        <li><a href="#schema">Общая схема работы интерпретатора</a></li>
+        <li><a href="#ast">AST: модуль Ast.fs</a></li>
+        <li><a href="#parser">Парсер: модуль Parser.fs</a></li>
+        <li><a href="#evaluator">Вычислитель: модуль Evaluator.fs</a></li>
+        <li><a href="#list-monad">List-монада как ядро вычислений</a></li>
+        <li><a href="#env">Окружение и связывание имён</a></li>
+        <li><a href="#recursion">Реализация рекурсии</a></li>
+        <li><a href="#currying-impl">Реализация каррирования</a></li>
+        <li><a href="#match-impl">Сопоставление с образцом</a></li>
+        <li><a href="#async-impl">Асинхронность</a></li>
+        <li><a href="#structs-impl">Структурные типы</a></li>
+        <li><a href="#import-impl">Импорт модулей</a></li>
+        <li><a href="#builtins-impl">Встроенные функции</a></li>
+        <li><a href="#typechecker">TypeChecker</a></li>
+        <li><a href="#program">Точка входа: модуль Program.fs</a></li>
+        <li><a href="#build">Сборка проекта</a></li>
+    </ol>
+
+    <h2 id="schema">1. Общая схема работы интерпретатора</h2>
+
+<div class="ascii-diagram">┌──────────────┐    ┌─────────────┐    ┌───────────────┐    ┌─────────────┐    ┌─────────────────┐
+│ Исходный код │ -> │  Parser.fs  │ -> │ AST (Ast.fs)  │ -> │ TypeChecker │ -> │  Evaluator.fs   │
+│  (.gl-файл)  │    │  (FParsec)  │    │ Expr-дерево   │    │  (мягкая    │    │ обход AST,      │
+└──────────────┘    └─────────────┘    └───────────────┘    │  проверка)  │    │ список Value    │
+                                                            └─────────────┘    └─────────────────┘
+                                                                                       │
+                                                                                       v
+                                                                              ┌──────────────────┐
+                                                                              │ Program.fs:      │
+                                                                              │ печать значений  │
+                                                                              └──────────────────┘</div>
+
+    <ol>
+        <li><code>Program.fs</code> читает файл <code>.gl</code> и передаёт строку в <code>Parser.parse</code>.</li>
+        <li>Парсер возвращает <code>Expr</code> — корень AST.</li>
+        <li><code>TypeChecker.typeCheck</code> делает поверхностную проверку (на текущем этапе — почти no-op).</li>
+        <li><code>Evaluator.eval defaultEnv ast</code> вычисляет дерево, возвращая список значений <code>Value list</code>.</li>
+        <li>Все значения списка печатаются <code>printValue</code>. Список из нескольких элементов означает несколько «вселенных» — это особенность List-монады.</li>
+    </ol>
+
+    <h2 id="ast">2. AST: модуль <code>Ast.fs</code></h2>
+    <p><code>Ast.fs</code> определяет два типа: <code>Pattern</code> и <code>Expr</code>.</p>
+
+    <h3>2.1. Тип <code>Pattern</code></h3>
+    <p>Описывает шаблоны для конструкции <code>СОПОСТАВИТЬ ... С</code>:</p>
+<pre><code class="language-fsharp">type Pattern =
+    | PatWildcard            // _
+    | PatEmptyList           // ПУСТО
+    | PatInt of int          // целое
+    | PatBool of bool        // ИСТИНА / ЛОЖЬ
+    | PatString of string    // "..."
+    | PatVar of string       // имя (привязка)
+    | PatCons of Pattern * Pattern   // [голова - хвост]</code></pre>
+
+    <h3>2.2. Тип <code>Expr</code></h3>
+    <p>Главный тип — узлы AST. Ключевые конструкторы:</p>
+    <table>
+        <thead>
+            <tr><th>Конструктор</th><th>Что представляет</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>Int</code>, <code>Bool</code>, <code>String</code></td><td>литералы</td></tr>
+            <tr><td><code>EmptyList</code>, <code>Cons</code>, <code>List</code></td><td>списочные литералы и конструкция head-tail</td></tr>
+            <tr><td><code>Variable</code></td><td>использование переменной</td></tr>
+            <tr><td><code>Lambda</code>, <code>Application</code></td><td>анонимная функция и её применение</td></tr>
+            <tr><td><code>Let</code>, <code>LetRec</code></td><td>связывание имени со значением / рекурсивная функция</td></tr>
+            <tr><td><code>If</code>, <code>Match</code></td><td>условные конструкции</td></tr>
+            <tr><td><code>Add</code>, <code>Sub</code>, <code>Mul</code>, <code>Div</code>, <code>Eq</code>, <code>Gt</code>, <code>And</code>, <code>Or</code></td><td>арифметика и логика</td></tr>
+            <tr><td><code>Pipeline</code>, <code>SafePipeline</code></td><td><code>ДАЛЕЕ</code> и <code>ДАЛЕЕ_УСПЕШНО</code></td></tr>
+            <tr><td><code>Success</code>, <code>Failure</code></td><td>конструкторы монады результата</td></tr>
+            <tr><td><code>Spawn</code>, <code>Await</code></td><td>асинхронность</td></tr>
+            <tr><td><code>Variants</code>, <code>Guard</code></td><td>недетерминизм через List-монаду</td></tr>
+            <tr><td><code>Range</code></td><td><code>ОТ_ДО(a, b)</code></td></tr>
+            <tr><td><code>For</code>, <code>Block</code></td><td>цикл и блок выражений</td></tr>
+            <tr><td><code>DefineStruct</code>, <code>StructInstance</code>, <code>FieldAccess</code></td><td>записи (структуры)</td></tr>
+            <tr><td><code>Import</code></td><td>подключение другого <code>.gl</code>-файла</td></tr>
+            <tr><td><code>Placeholder</code></td><td><code>_</code> для каррирования</td></tr>
+        </tbody>
+    </table>
+    <p>Все узлы — обычные алгебраические типы F#, поэтому AST легко обходить через сопоставление с образцом.</p>
+
+    <h2 id="parser">3. Парсер: модуль <code>Parser.fs</code></h2>
+    <p>
+        <code>Parser.fs</code> построен на FParsec. Парсер — это композиция мелких комбинаторов,
+        каждый из которых разбирает определённую конструкцию.
+    </p>
+
+    <h3>3.1. Лексические основы</h3>
+    <ul>
+        <li><strong>Идентификаторы</strong> — <code>pIdent</code>: первая буква — латинская/кириллическая или <code>_</code>, далее можно цифры. Ключевые слова отсеиваются проверкой <code>isKeyword</code>.</li>
+        <li><strong>Пробелы и комментарии</strong> — <code>ws</code> пропускает любые пробелы, однострочные <code>комментарий: ...</code> и многострочные <code>комментарий { ... }</code>.</li>
+        <li><strong>Литералы</strong>: <code>pInt</code> (через <code>pint32</code>), <code>pString</code>, <code>pBool</code>, <code>pEmptyList</code>, <code>pPlaceholder</code>.</li>
+    </ul>
+
+    <h3>3.2. Forward-references</h3>
+    <p>
+        Так как грамматика рекурсивная (выражение может содержать выражения), используется
+        приём <code>createParserForwardedToRef</code>:
+    </p>
+<pre><code class="language-fsharp">let pExpr, pExprRef = createParserForwardedToRef&lt;Expr, unit&gt; ()</code></pre>
+    <p>
+        Сначала объявляется ссылка <code>pExpr</code>, мелкие комбинаторы её используют,
+        а в конце файла <code>pExprRef.Value &lt;- ...</code> указывает фактическую реализацию.
+    </p>
+
+    <h3>3.3. Основные комбинаторы</h3>
+    <table>
+        <thead>
+            <tr><th>Парсер</th><th>Конструкция</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>pLet</code></td><td><code>ПУСТЬ имя = ...</code> или <code>ПУСТЬ имя(...) {...}</code></td></tr>
+            <tr><td><code>pIf</code></td><td><code>ЕСЛИ ... ТО {...} ИНАЧЕ {...}</code></td></tr>
+            <tr><td><code>pMatch</code></td><td><code>СОПОСТАВИТЬ ... С { КОГДА ... -&gt; ... }</code></td></tr>
+            <tr><td><code>pFor</code></td><td><code>ДЛЯ (х В ...) { ... }</code></td></tr>
+            <tr><td><code>pLambda</code></td><td><code>(аргументы) -&gt; выражение</code></td></tr>
+            <tr><td><code>pSpawn</code>, <code>pAwait</code></td><td><code>ФОНОМ(...)</code>, <code>ДОЖДАТЬСЯ(...)</code></td></tr>
+            <tr><td><code>pSuccess</code>, <code>pFailure</code></td><td><code>УСПЕХ(...)</code>, <code>ПРОВАЛ(...)</code></td></tr>
+            <tr><td><code>pVariants</code>, <code>pGuard</code></td><td><code>ВАРИАНТЫ(...)</code>, <code>ТРЕБОВАТЬ(...)</code></td></tr>
+            <tr><td><code>pRange</code></td><td><code>ОТ_ДО(a, b)</code></td></tr>
+            <tr><td><code>pList</code></td><td><code>[a, b, c]</code> — превращается в <code>Cons</code>-цепочку</td></tr>
+            <tr><td><code>pDefineStruct</code></td><td><code>ТИП И = { поле Тип, ... }</code></td></tr>
+            <tr><td><code>pStructInstance</code></td><td><code>И { поле = знач, ... }</code></td></tr>
+            <tr><td><code>pImport</code></td><td><code>ИМПОРТ "путь"</code></td></tr>
+            <tr><td><code>pBlock</code></td><td><code>{ выр1 выр2 ... }</code></td></tr>
+        </tbody>
+    </table>
+
+    <h3>3.4. Объявления функций</h3>
+    <p>
+        <code>pLet</code> — самый интересный комбинатор: он распознаёт как
+        <code>ПУСТЬ имя = выр</code>, так и <code>ПУСТЬ имя(а, б) { тело }</code>.
+        Если есть аргументы, <code>pLet</code> строит <code>LetRec</code> и применяет
+        <code>foldBack</code> по аргументам, превращая многоаргументную функцию
+        в цепочку лямбд:
+    </p>
+<pre><code class="language-fsharp">let innerBody = List.foldBack (fun arg b -> Lambda(arg, b)) xs valExpr
+LetRec(id, x, innerBody, EmptyList)</code></pre>
+    <p>
+        Это и есть автоматическое каррирование: <code>ПУСТЬ ф(а, б, в) { ... }</code> —
+        это на самом деле <code>LetRec("ф", "а", Lambda("б", Lambda("в", тело)), ...)</code>.
+    </p>
+
+    <h3>3.5. Операторы и приоритеты</h3>
+    <p>Используется <code>OperatorPrecedenceParser</code> из FParsec. Уровни приоритета:</p>
+    <table>
+        <thead>
+            <tr><th>Уровень</th><th>Операторы</th><th>Ассоциативность</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>5</td><td><code>*</code>, <code>/</code></td><td>левая</td></tr>
+            <tr><td>4</td><td><code>+</code>, <code>-</code></td><td>левая</td></tr>
+            <tr><td>3</td><td><code>==</code>, <code>&gt;</code></td><td>левая</td></tr>
+            <tr><td>1</td><td><code>ДАЛЕЕ</code>, <code>ДАЛЕЕ_УСПЕШНО</code>, <code>&gt;&gt;?</code></td><td>левая</td></tr>
+        </tbody>
+    </table>
+    <p>
+        <code>И</code> и <code>ИЛИ</code> реализованы отдельно — поверх
+        <code>OperatorPrecedenceParser</code>, через <code>chainl1</code>. Это сделано
+        потому, что они кириллические идентификаторы и требуют ручной проверки
+        <code>notFollowedBy (satisfy isIdentifierChar)</code>, чтобы не съесть начало слова,
+        которое случайно начинается на <code>И</code>.
+    </p>
+
+    <h3>3.6. Применение функций и доступ к полям</h3>
+    <p>После терминального выражения «приклеивается» хвост вызовов и <code>.поле</code>:</p>
+<pre><code class="language-fsharp">pTerm .>>. many (pCallArgs <|> pFieldAcc)
+|>> fun (term, operations) -> List.fold (fun acc op -> op acc) term operations</code></pre>
+    <p>
+        Каждый вызов с несколькими аргументами разворачивается в цепочку <code>Application</code>,
+        что согласуется с каррированной формой функций.
+    </p>
+
+    <h3>3.7. Точка входа парсера</h3>
+<pre><code class="language-fsharp">let parse (input: string) =
+    match run (ws >>. many1 (attempt pExpr) .>> eof) input with
+    | Success(result, _, _) -> if result.Length = 1 then result.Head else Block result
+    | Failure(errorMsg, _, _) -> failwith errorMsg</code></pre>
+    <p>Несколько последовательных выражений верхнего уровня оборачиваются в <code>Block</code>.</p>
+
+    <h2 id="evaluator">4. Вычислитель: модуль <code>Evaluator.fs</code></h2>
+    <p><code>Evaluator.fs</code> — сердце интерпретатора.</p>
+
+    <h3>4.1. Тип значений <code>Value</code></h3>
+<pre><code class="language-fsharp">type Value =
+    | VInt of int
+    | VFloat of float
+    | VBool of bool
+    | VString of string
+    | VList of Value list
+    | VRecord of Map&lt;string, Value&gt;
+    | VClosure of string * Expr * Env
+    | VBuiltin of string * (Value -> Value list)
+    | VResult of Result&lt;Value, Value&gt;
+    | VFuture of System.Threading.Tasks.Task&lt;Value list&gt;
+    | VPlaceholder
+    | VUnit</code></pre>
+    <p>Несколько неочевидных деталей:</p>
+    <ul>
+        <li><strong><code>VBuiltin</code> возвращает <code>Value list</code>, а не <code>Value</code></strong> — это ключевой выбор: каждое вычисление потенциально недетерминировано. Подробнее в разделе про List-монаду.</li>
+        <li><strong><code>VPlaceholder</code></strong> — соответствует <code>_</code> и обрабатывается особым образом при <code>applyValue</code>.</li>
+        <li><strong><code>VFuture</code></strong> — обёртка над <code>Task&lt;Value list&gt;</code> для асинхронных вычислений.</li>
+        <li><strong><code>VUnit</code></strong> — возвращается побочными функциями (<code>вывод</code>), чтобы не печатать ничего лишнего.</li>
+    </ul>
+
+    <h3>4.2. Окружение <code>Env</code></h3>
+<pre><code class="language-fsharp">and Env = Map&lt;string, Value&gt;</code></pre>
+    <p>
+        Простая иммутабельная карта «имя → значение». Каждое связывание создаёт новый
+        <code>Env</code> через <code>Map.add</code>, что естественно для функционального стиля
+        и автоматически обеспечивает корректную лексическую область видимости.
+    </p>
+
+    <h3>4.3. Главная функция <code>eval</code></h3>
+    <p>Сигнатура:</p>
+<pre><code class="language-fsharp">eval : Env -> Expr -> Value list</code></pre>
+    <p>
+        Возвращает <strong>список</strong> значений, а не одно. Это позволяет одной и той же
+        функции <code>eval</code> обслуживать и обычные детерминированные вычисления
+        (список из одного элемента), и недетерминированные (<code>ВАРИАНТЫ</code>),
+        и параллельные ветви.
+    </p>
+    <p>Главный приём — использование <code>bind</code>:</p>
+<pre><code class="language-fsharp">let bind (vals: Value list) (f: Value -> Value list) = List.collect f vals</code></pre>
+    <p>
+        Это и есть оператор связывания <code>&gt;&gt;=</code> для List-монады. Каждое подвыражение
+        связывается через <code>bind</code>, поэтому если хоть одно из подвыражений раздваивается,
+        общий результат содержит все возможные комбинации.
+    </p>
+    <p>Пример — сложение:</p>
+<pre><code class="language-fsharp">| Add(e1, e2) ->
+    bind (eval env e1) (fun v1 ->
+        bind (eval env e2) (fun v2 ->
+            match v1, v2 with
+            | VInt a, VInt b -> [ VInt(a + b) ]
+            | _ -> failwith "Type error Add"))</code></pre>
+    <p>
+        Если <code>e1</code> и <code>e2</code> — детерминированные, <code>eval</code> вернёт
+        список из одного элемента, и <code>bind</code> просто проденет результат дальше.
+        Если же одно из них — <code>ВАРИАНТЫ</code>, мы автоматически получим декартово произведение.
+    </p>
+
+    <h2 id="list-monad">5. List-монада как ядро вычислений</h2>
+    <p>
+        Это самая важная архитектурная идея интерпретатора.
+        Все остальные «магические» возможности языка вырастают из неё.
+    </p>
+
+    <h3>5.1. Как работает недетерминизм</h3>
+<pre><code class="language-fsharp">| Variants xs -> List.collect (eval env) xs</code></pre>
+    <p>
+        <code>ВАРИАНТЫ(1, 2, 3)</code> буквально превращается в <code>[VInt 1; VInt 2; VInt 3]</code>.
+        Когда в дальнейшем коде это значение участвует в <code>Add</code>, <code>bind</code>
+        пропускает каждое значение через продолжение по очереди — и результат тоже становится списком.
+    </p>
+
+    <h3>5.2. Отсечение через <code>ТРЕБОВАТЬ</code></h3>
+<pre><code class="language-fsharp">| Guard cond ->
+    bind (eval env cond) (fun c ->
+        match c with
+        | VBool true -> [ VBool true ]   // вселенная остаётся
+        | VBool false -> []              // вселенная отсекается
+        | _ -> failwith "Type error")</code></pre>
+    <p>
+        Возврат пустого списка означает, что эта ветвь вычислений уничтожена — она не даст
+        ни одного результата. В программах вида «найти все x, y из 1..3 такие, что x + y = 4»
+        именно <code>Guard</code>, возвращая <code>[]</code> для несоответствующих пар,
+        выкидывает их из итогового списка.
+    </p>
+
+    <h3>5.3. Цена и польза</h3>
+    <ul>
+        <li><strong>Польза:</strong> декларативные комбинаторные задачи пишутся естественно. Нет нужды в явных циклах и фильтрах — это всё в семантике языка.</li>
+        <li><strong>Цена:</strong> даже простое выражение <code>1 + 1</code> гоняется через <code>bind</code> со списком из одного элемента. Это накладные расходы на обёртки, но они невелики и единообразны для всего языка.</li>
+    </ul>
+
+    <h2 id="env">6. Окружение и связывание имён</h2>
+    <p><code>Let</code> — самый простой случай:</p>
+<pre><code class="language-fsharp">| Let(x, e1, e2) ->
+    bind (eval env e1) (fun val1 ->
+        let newEnv = Map.add x val1 env
+        eval newEnv e2)</code></pre>
+    <p>
+        Однако в реальности парсер генерирует <code>Let(x, e1, EmptyList)</code> для простых
+        объявлений, а сами объявления собираются в <code>Block</code>. Внутри <code>Block</code>
+        есть отдельная логика <code>runBlock</code>, которая последовательно расширяет окружение:
+    </p>
+<pre><code class="language-fsharp">| Let(x, e1, _) :: rest ->
+    bind (eval currentEnv e1) (fun val1 ->
+        runBlock (Map.add x val1 currentEnv) rest)</code></pre>
+    <p>
+        Это обеспечивает то, что объявления в верхнеуровневом блоке видят друг друга
+        в линейном порядке.
+    </p>
+
+    <h2 id="recursion">7. Реализация рекурсии</h2>
+    <p>Все функции в Глаголице рекурсивны по умолчанию. Это достигается через <code>LetRec</code>:</p>
+<pre><code class="language-fsharp">| LetRec(f, x, body, eContext) ->
+    let rec recFunc argEnv (argValue: Value) =
+        let newEnv = env |> Map.add f (VBuiltin(f, recFunc argEnv)) |> Map.add x argValue
+        eval newEnv body
+    let closure = VBuiltin(f, recFunc env)
+    let newEnv = Map.add f closure env
+    eval newEnv eContext</code></pre>
+    <p>
+        Хитрость в том, что <code>recFunc</code> помещает саму себя в окружение
+        <strong>до</strong> вычисления тела функции. Когда внутри тела встречается имя
+        функции <code>f</code>, в окружении уже есть <code>VBuiltin(f, recFunc env)</code>,
+        который при вызове вернёт нас в <code>recFunc</code> — отсюда и рекурсия.
+    </p>
+
+    <h2 id="currying-impl">8. Реализация каррирования</h2>
+    <p>Каррирование — двухуровневое.</p>
+
+    <h3>8.1. На уровне парсера</h3>
+    <p>Многоаргументная функция превращается в цепочку лямбд (<code>pLet</code> / <code>pLambda</code>):</p>
+<pre><code class="language-glagol">ПУСТЬ ф(а, б, в) { тело }</code></pre>
+    <p>эквивалентно</p>
+<pre><code class="language-fsharp">LetRec("ф", "а", Lambda("б", Lambda("в", тело)), ...)</code></pre>
+
+    <h3>8.2. На уровне <code>applyValue</code></h3>
+<pre><code class="language-fsharp">let rec applyValue (func: Value) (arg: Value) : Value list =
+    match arg with
+    | VPlaceholder -> [ VBuiltin("curried", fun x -> applyValue func x) ]
+    | _ ->
+        match func with
+        | VClosure(x, body, closureEnv) -> eval (Map.add x arg closureEnv) body
+        | VBuiltin(_, f) -> f arg
+        | _ -> failwith "Application error: not a function"</code></pre>
+    <p>
+        Если в качестве аргумента передан <code>VPlaceholder</code> (<code>_</code>),
+        то вместо вызова возвращается новая функция, которая ждёт ещё один аргумент
+        и подставит его на место плейсхолдера. Это и есть частичное применение.
+    </p>
+
+    <h2 id="match-impl">9. Сопоставление с образцом</h2>
+    <p>Проверка одного шаблона:</p>
+<pre><code class="language-fsharp">let rec matchPattern (pat: Pattern) (v: Value) : Env option =
+    match pat, v with
+    | PatWildcard, _ -> Some Map.empty
+    | PatEmptyList, VList [] -> Some Map.empty
+    | PatInt i, VInt iv when i = iv -> Some Map.empty
+    ...
+    | PatVar x, _ -> Some(Map.ofList [ (x, v) ])
+    | PatCons(ph, pt), VList(h :: t) -> ...</code></pre>
+    <p>
+        Возвращает <code>Some bindings</code>, если шаблон подошёл, и привязки, которые нужно
+        добавить в окружение. Если ни одна ветвь <code>Match</code> не подошла —
+        вычисление падает с <code>failwith "Pattern match error"</code>.
+    </p>
+    <p><code>Match</code> сводится к перебору ветвей с помощью <code>tryBranches</code>:</p>
+<pre><code class="language-fsharp">| Match(e, branches) ->
+    bind (eval env e) (fun v ->
+        let rec tryBranches = function
+            | [] -> failwith "Pattern match error"
+            | (pat, body) :: rest ->
+                match matchPattern pat v with
+                | Some bindings ->
+                    let newEnv = Map.fold (fun ac k vv -> Map.add k vv ac) env bindings
+                    eval newEnv body
+                | None -> tryBranches rest
+        tryBranches branches)</code></pre>
+    <p>
+        Здесь снова работает List-монада: если значение <code>e</code> — недетерминированное,
+        <code>bind</code> пропустит каждый его вариант через все ветви.
+    </p>
+
+    <h2 id="async-impl">10. Асинхронность</h2>
+    <p>Реализована поверх <code>System.Threading.Tasks.Task</code>:</p>
+<pre><code class="language-fsharp">| Spawn e ->
+    let t = System.Threading.Tasks.Task.Run(fun () -> eval env e)
+    [ VFuture t ]
+| Await e ->
+    bind (eval env e) (fun v ->
+        match v with
+        | VFuture f -> f.Result
+        | x -> [ x ])</code></pre>
+    <p>
+        <code>Spawn</code> запускает вычисление в <code>Task.Run</code> и возвращает
+        <code>VFuture</code>. <code>Await</code> блокирует, пока задача не завершится,
+        и возвращает её результат как обычный <code>Value list</code>. Если на вход
+        <code>ДОЖДАТЬСЯ</code> подали не фьючер, значение возвращается как есть.
+    </p>
+
+    <h2 id="structs-impl">11. Структурные типы</h2>
+    <p>
+        <code>DefineStruct</code> ничего не делает во время выполнения
+        (<code>[VList []]</code>) — определение типа существует только как пометка для читателя.
+        Значение типа создаётся через <code>StructInstance</code>, которое строит
+        <code>VRecord(Map&lt;string, Value&gt;)</code>:
+    </p>
+<pre><code class="language-fsharp">| StructInstance(name, fields) ->
+    let rec evFields currentFields = function
+        | [] -> [ VRecord(Map.ofList currentFields) ]
+        | (fName, fExpr) :: xs ->
+            bind (eval env fExpr) (fun fVal ->
+                evFields ((fName, fVal) :: currentFields) xs)
+    evFields [] fields</code></pre>
+    <p>Доступ к полю — через <code>FieldAccess</code>:</p>
+<pre><code class="language-fsharp">| FieldAccess(e, fName) ->
+    bind (eval env e) (function
+        | VRecord map -> [ Map.find fName map ]
+        | _ -> failwith "Not a record")</code></pre>
+
+    <h2 id="import-impl">12. Импорт модулей</h2>
+    <p><code>Import</code> читает файл по пути, парсит его и вставляет результат:</p>
+<pre><code class="language-fsharp">| Import filename ->
+    let code = System.IO.File.ReadAllText(filename)
+    let importedExpr = GlagolLanguage.Parser.parse code
+    eval env importedExpr</code></pre>
+    <p>Если <code>Import</code> встречен внутри <code>Block</code>, его содержимое разворачивается прямо в текущий блок:</p>
+<pre><code class="language-fsharp">| Import filename :: rest ->
+    let code = System.IO.File.ReadAllText(filename)
+    let importedExpr = GlagolLanguage.Parser.parse code
+    match importedExpr with
+    | Block stmts -> runBlock currentEnv (stmts @ rest)
+    | single -> runBlock currentEnv (single :: rest)</code></pre>
+    <p>Это обеспечивает то, что объявления из импортированного файла видны в импортирующем.</p>
+
+    <h2 id="builtins-impl">13. Встроенные функции</h2>
+    <p>
+        Они собраны в <code>buildMapEnv ()</code> и подставляются в <code>defaultEnv</code> —
+        окружение, с которым стартует любая программа. Каждая функция представлена как
+        <code>VBuiltin(имя, F# функция)</code>.
+    </p>
+    <p>Реализованные встроенные:</p>
+    <ul>
+        <li><strong>Ввод/вывод:</strong> <code>вывод</code>, <code>чтение</code>, <code>читать_файл</code>.</li>
+        <li><strong>Преобразования типов:</strong> <code>Число</code>, <code>Строка</code>, <code>Дробное</code>. Все возвращают <code>VResult</code> для безопасной обработки ошибок.</li>
+        <li><strong>Высшего порядка:</strong> <code>отобразить</code>, <code>отфильтровать</code>, <code>свернуть</code>, <code>взять_пока</code>. Реализованы как двухуровневые <code>VBuiltin</code> (сначала функция, затем список) — это и есть встроенное каррирование.</li>
+    </ul>
+    <p>Пример — <code>отобразить</code>:</p>
+<pre><code class="language-fsharp">"отобразить", VBuiltin("отобразить", fun func ->
+    [ VBuiltin("отобразить1", fun lst ->
+        match lst with
+        | VList xs ->
+            let mapped = xs |> List.collect (fun x -> applyValue func x)
+            [ VList mapped ]
+        | _ -> failwith "Not a list") ])</code></pre>
+    <p>
+        <code>List.collect</code> здесь — снова та же List-монада: если <code>func</code>
+        возвращает несколько вариантов, все они попадают в итоговый список.
+    </p>
+
+    <h2 id="typechecker">14. TypeChecker</h2>
+    <p>
+        <code>TypeChecker.fs</code> на текущем этапе содержит <strong>мягкую</strong>
+        проверку типов — почти все выражения помечаются как <code>TAny</code>.
+        Это плейсхолдер для будущего расширения, спроектированный так, чтобы:
+    </p>
+    <ol>
+        <li>Не мешать рантайму — <code>typeCheck</code> всегда возвращает <code>true</code>.</li>
+        <li>Позволить инкрементально вводить более строгие правила без ломки существующих программ.</li>
+    </ol>
+    <p>Тип-система описана как алгебраический тип:</p>
+<pre><code class="language-fsharp">type Type =
+    | TInt | TFloat | TBool | TString
+    | TList of Type
+    | TArrow of Type * Type
+    | TStruct of string
+    | TAny</code></pre>
+    <p>В текущем виде <code>TAny</code> — это «любой тип», и почти все ветви <code>checkExpr</code> его и возвращают.</p>
+
+    <h2 id="program">15. Точка входа: модуль <code>Program.fs</code></h2>
+    <p><code>Program.fs</code> реализует CLI:</p>
+    <ul>
+        <li>
+            <strong>Запуск файла</strong> (<code>dotnet run --project src -- путь/к/файлу.gl</code>):
+            <ol>
+                <li>Проверка расширения <code>.gl</code> и существования файла.</li>
+                <li>Чтение, парсинг, type-check, eval.</li>
+                <li>Печать результирующего списка значений (или сообщение, что все вселенные отсечены).</li>
+            </ol>
+        </li>
+        <li>
+            <strong>REPL</strong> (<code>--repl</code> или <code>-i</code>): построчное чтение
+            с эвристикой определения многострочного ввода — если строка кончается на
+            <code>В</code>, <code>ТО</code>, <code>ИНАЧЕ</code>, <code>-&gt;</code>, <code>|</code>,
+            или содержит <code>СОПОСТАВИТЬ</code> без <code>-&gt;</code>, ждём продолжения.
+            Завершение многострочного блока — по <code>;;</code>.
+        </li>
+    </ul>
+    <p>
+        <code>printValue</code> форматирует значения по типам, специально обрабатывая
+        <code>VResult</code> (печатает <code>УСПЕХ(...)</code>/<code>ПРОВАЛ(...)</code>)
+        и <code>VUnit</code> (ничего не печатает).
+    </p>
+    <p>
+        В начале <code>main</code> устанавливаются UTF-8 кодировки консоли — это важно
+        для корректной работы кириллических ключевых слов в Windows.
+    </p>
+
+    <h2 id="build">16. Сборка проекта</h2>
+<pre><code class="language-xml">&lt;Project Sdk="Microsoft.NET.Sdk"&gt;
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;Compile Include="Ast.fs" /&gt;
+    &lt;Compile Include="Parser.fs" /&gt;
+    &lt;Compile Include="Evaluator.fs" /&gt;
+    &lt;Compile Include="TypeChecker.fs" /&gt;
+    &lt;Compile Include="Program.fs" /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include="FParsec" Version="1.1.1" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;</code></pre>
+    <p>
+        Порядок <code>&lt;Compile&gt;</code> критичен в F#: типы и модули должны быть
+        объявлены до использования. Поэтому <code>Ast.fs</code> идёт первым (типы AST),
+        затем <code>Parser.fs</code>, который их использует, затем <code>Evaluator.fs</code>,
+        и так далее.
+    </p>
+    <p>Сборка и запуск:</p>
+<pre><code class="language-bash">dotnet build src
+dotnet run --project src -- examples/hello.gl</code></pre>
+    <p>Единственная внешняя зависимость — пакет <code>FParsec</code> версии 1.1.1.</p>
+
+    <h2>Заключение</h2>
+    <p>
+        Глаголица построена вокруг одной простой, но мощной идеи:
+        <strong><code>eval</code> возвращает не значение, а список значений</strong>.
+        Это позволяет в одном и том же интерпретаторе элегантно реализовать:
+    </p>
+    <ul>
+        <li>обычные детерминированные вычисления (списки длины 1),</li>
+        <li>недетерминированные вычисления через <code>ВАРИАНТЫ</code>/<code>ТРЕБОВАТЬ</code>,</li>
+        <li>асинхронность (через <code>VFuture</code>, оборачивающий <code>Task&lt;Value list&gt;</code>),</li>
+        <li>монадические цепочки (<code>УСПЕХ</code> / <code>ДАЛЕЕ_УСПЕШНО</code>),</li>
+        <li>каррирование (через <code>VPlaceholder</code> и двухуровневые <code>VBuiltin</code>).</li>
+    </ul>
+    <p>
+        Парсер, написанный на FParsec, повторяет ту же функциональную композицию: грамматика
+        собирается из мелких комбинаторов, как и AST — из мелких алгебраических конструкторов.
+        Это и делает интерпретатор компактным: меньше 500 строк ядра при поддержке всех возможностей языка.
+    </p>
+
+</main>
+
+</body>
+</html>

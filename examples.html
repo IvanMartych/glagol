@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Примеры программ — Глаголица</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("pre code.language-glagol").forEach(b => b.classList.replace("language-glagol", "language-fsharp"));
+            hljs.highlightAll();
+        });
+    </script>
+    <style>
+        .pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .pair-col {
+            display: flex;
+            flex-direction: column;
+        }
+        .pair-col h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+        }
+        .pair pre {
+            margin: 0;
+            height: fit-content;
+        }
+        @media (max-width: 720px) {
+            .pair { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="site-header-inner">
+        <a href="index.html" class="logo-link">
+            <img src="assets/logo.png" alt="Логотип Глаголицы">
+            <span>Глаголица</span>
+        </a>
+        <nav class="site-nav">
+            <a href="index.html">О проекте</a>
+            <a href="documentation.html">Документация</a>
+            <a href="implementation.html">Техническая реализация</a>
+            <a href="examples.html" class="active">Примеры программ</a>
+            <a href="vscode.html">Расширение VS Code</a>
+        </nav>
+    </div>
+</header>
+
+<main class="content">
+
+    <h1>Примеры программ</h1>
+    <p class="lead">
+        15 программ на Глаголице с эквивалентами на F# — параллельный взгляд на то, как
+        ключевые конструкции функциональной парадигмы выражаются в обоих языках.
+    </p>
+
+    <h2>О разделе</h2>
+    <p>
+        Параллельное представление позволяет увидеть, как ключевые конструкции функциональной
+        парадигмы выражаются в Глаголице и как они соотносятся с базовым языком,
+        на котором реализован интерпретатор.
+    </p>
+    <p>Все примеры расположены в директории <code>examples/</code>:</p>
+    <ul>
+        <li><code>examples/Glagol_examples/</code> — программы на Глаголице (<code>.gl</code>)</li>
+        <li><code>examples/fsharp_examples/</code> — те же программы на F# (<code>.fsx</code>)</li>
+        <li><code>examples/glagol_all_progs.gl</code> и <code>examples/fsharp_all_progs.fsx</code> — все примеры в одном файле</li>
+        <li><code>examples/hello.gl</code> — простейшая программа «Привет, мир!»</li>
+    </ul>
+
+    <h2>Содержание</h2>
+    <ol>
+        <li><a href="#hello">Привет, Мир!</a></li>
+        <li><a href="#factorial">Факториал</a></li>
+        <li><a href="#fibonacci">Числа Фибоначчи</a></li>
+        <li><a href="#euclid">Алгоритм Евклида (НОД)</a></li>
+        <li><a href="#search">Поиск элемента в списке</a></li>
+        <li><a href="#cycle">Цикл и генератор последовательности</a></li>
+        <li><a href="#async">Асинхронные вычисления</a></li>
+        <li><a href="#monad">Монада успеха/ошибки</a></li>
+        <li><a href="#struct">Пользовательские типы данных</a></li>
+        <li><a href="#logic">Логические операции</a></li>
+        <li><a href="#pipeline">Пайплайн-оператор</a></li>
+        <li><a href="#combinations">Недетерминированные вычисления (List-монада)</a></li>
+        <li><a href="#currying">Каррирование и частичное применение</a></li>
+        <li><a href="#match">Сопоставление с образцом</a></li>
+        <li><a href="#import">Импорт модулей</a></li>
+    </ol>
+
+    <h2 id="hello">1. Привет, Мир!</h2>
+    <p>Простейшая программа выводит строку в консоль с помощью встроенной функции <code>вывод</code>.</p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">вывод("Привет Мир!")</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">printfn "%s" "Привет Мир!"</code></pre>
+        </div>
+    </div>
+    <p>
+        Функция <code>вывод</code> — это встроенный аналог <code>printfn</code> из F#,
+        она автоматически добавляет перевод строки и умеет печатать значения любого типа.
+    </p>
+
+    <h2 id="factorial">2. Факториал</h2>
+    <p>
+        Классический пример рекурсии. На Глаголице используется ключевое слово
+        <code>ПУСТЬ</code> для объявления функции, а условные выражения записываются
+        через <code>ЕСЛИ ... ТО ... ИНАЧЕ</code>.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ факториал(х){
+    ЕСЛИ х == 0 ТО { 1 }
+    ИНАЧЕ { х * факториал(х - 1) }
+}
+вывод(факториал(5))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let rec factorial x =
+    if x = 0 then 1
+    else x * factorial (x - 1)
+printfn "%A" (factorial 5)</code></pre>
+        </div>
+    </div>
+    <p>
+        В Глаголице рекурсивные функции не требуют отдельного модификатора
+        (как <code>rec</code> в F#) — функция автоматически видит саму себя.
+    </p>
+
+    <h2 id="fibonacci">3. Числа Фибоначчи</h2>
+    <p>Ещё один пример рекурсии, демонстрирующий вложенные условия.</p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ фиб(х){
+    ЕСЛИ х == 0 ТО { 0 }
+    ИНАЧЕ {
+        ЕСЛИ х == 1 ТО { 1 }
+        ИНАЧЕ { фиб(х - 1) + фиб(х - 2) }
+    }
+}
+вывод(фиб(10))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let rec fib x =
+    if x <= 1 then x
+    else fib (x - 1) + fib (x - 2)
+printfn "%A" (fib 10)</code></pre>
+        </div>
+    </div>
+
+    <h2 id="euclid">4. Алгоритм Евклида (НОД)</h2>
+    <p>Рекурсивный алгоритм нахождения наибольшего общего делителя через вычитание.</p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ нод(а, б){
+    ЕСЛИ а == б ТО { а }
+    ИНАЧЕ {
+        ЕСЛИ а > б ТО { нод(а - б, б) }
+        ИНАЧЕ { нод(а, б - а) }
+    }
+}
+вывод(нод(14, 21))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let rec gcd a b =
+    if a = b then a
+    elif a > b then gcd (a - b) b
+    else gcd a (b - a)
+printfn "%A" (gcd 14 21)</code></pre>
+        </div>
+    </div>
+
+    <h2 id="search">5. Поиск элемента в списке</h2>
+    <p>
+        Демонстрирует <strong>сопоставление с образцом</strong>
+        (<code>СОПОСТАВИТЬ ... С</code>) и работу со списками.
+        Список разбирается на голову и хвост через шаблон <code>[голова - хвост]</code>.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ содержит(список, элемент){
+    СОПОСТАВИТЬ список С {
+        КОГДА ПУСТО -> { ЛОЖЬ }
+        КОГДА [голова - хвост] -> {
+            ЕСЛИ голова == элемент ТО { ИСТИНА }
+            ИНАЧЕ { содержит(хвост, элемент) }
+        }
+    }
+}
+ПУСТЬ мой_список = [10, 20, 30]
+вывод(содержит(мой_список, 20))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let rec contains lst element =
+    match lst with
+    | [] -> false
+    | head :: tail ->
+        if head = element then true
+        else contains tail element
+
+let myList = [10; 20; 30]
+printfn "%A" (contains myList 20)</code></pre>
+        </div>
+    </div>
+    <p>Соответствия:</p>
+    <table>
+        <thead>
+            <tr><th>Глаголица</th><th>F#</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>СОПОСТАВИТЬ x С { ... }</code></td><td><code>match x with</code></td></tr>
+            <tr><td><code>КОГДА ПУСТО -&gt; { ... }</code></td><td><code>| [] -&gt; ...</code></td></tr>
+            <tr><td><code>КОГДА [голова - хвост]</code></td><td><code>| head :: tail -&gt;</code></td></tr>
+            <tr><td><code>ИСТИНА</code> / <code>ЛОЖЬ</code></td><td><code>true</code> / <code>false</code></td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="cycle">6. Цикл и генератор последовательности</h2>
+    <p>
+        Цикл <code>ДЛЯ</code> пробегает по диапазону, сгенерированному функцией <code>ОТ_ДО</code>.
+        Это аналог <code>for ... in 1..10 do</code> в F#.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ таблица = ДЛЯ (ч В ОТ_ДО(1, 10)) {
+    вывод(ч * ч)
+}</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">for i in 1..10 do
+    printfn "%d" (i * i)</code></pre>
+        </div>
+    </div>
+
+    <h2 id="async">7. Асинхронные вычисления</h2>
+    <p>
+        Глаголица поддерживает асинхронные блоки через <code>ФОНОМ({ ... })</code>
+        и ожидание результата через <code>ДОЖДАТЬСЯ(...)</code>. Это прямой аналог
+        <code>async { ... }</code> и <code>Async.RunSynchronously</code> в F#.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ долгая_задача = ФОНОМ({
+    ЕСЛИ ИСТИНА ТО { 42 } ИНАЧЕ { 0 }
+})
+ПУСТЬ результат = ДОЖДАТЬСЯ(долгая_задача)
+вывод(результат)</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let task = async {
+    return if true then 42 else 0
+}
+let asyncResult = Async.RunSynchronously task
+printfn "%A" asyncResult</code></pre>
+        </div>
+    </div>
+
+    <h2 id="monad">8. Монада успеха/ошибки</h2>
+    <p>
+        Для безопасной обработки результатов вычислений Глаголица предоставляет монадические
+        конструкторы <code>УСПЕХ(...)</code> и оператор связывания <code>ДАЛЕЕ_УСПЕШНО</code>.
+        Это аналог <code>Result&lt;_,_&gt;</code> и <code>Result.bind</code> в F#.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ старт = УСПЕХ(10)
+ПУСТЬ результат = старт ДАЛЕЕ_УСПЕШНО (х) -> {
+    УСПЕХ(х * 2)
+}
+вывод(результат)</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let start : Result<int, string> = Ok 10
+let res = start |> Result.bind (fun x -> Ok(x * 2))
+printfn "%A" res</code></pre>
+        </div>
+    </div>
+    <p>
+        Оператор <code>ДАЛЕЕ_УСПЕШНО</code> пропускает вычисление дальше только в случае успеха;
+        при ошибке цепочка прерывается.
+    </p>
+
+    <h2 id="struct">9. Пользовательские типы данных</h2>
+    <p>
+        Глаголица позволяет определять структурные типы (записи) через ключевое слово
+        <code>ТИП</code>. Поля доступны через точечную нотацию.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ТИП Игрок = { здоровье Int, уровень Int }
+ПУСТЬ герой = Игрок { здоровье = 100, уровень = 5 }
+
+ПУСТЬ жив_ли(персонаж){
+    ЕСЛИ персонаж.здоровье > 0 ТО { ИСТИНА } ИНАЧЕ { ЛОЖЬ }
+}
+вывод(жив_ли(герой))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">type Player = { Health: int; Level: int }
+let hero = { Health = 100; Level = 5 }
+
+let isAlive p =
+    if p.Health > 0 then true else false
+printfn "%A" (isAlive hero)</code></pre>
+        </div>
+    </div>
+
+    <h2 id="logic">10. Логические операции</h2>
+    <p>Логические <code>И</code>, <code>ИЛИ</code>, <code>НЕ</code> — это аналоги <code>&amp;&amp;</code>, <code>||</code>, <code>not</code> в F#.</p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ проверка(а, б){
+    ЕСЛИ а И б ТО { ИСТИНА }
+    ИНАЧЕ { ЛОЖЬ }
+}
+вывод(проверка(ИСТИНА, ЛОЖЬ))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let check a b =
+    if a && b then true
+    else false
+printfn "%A" (check true false)</code></pre>
+        </div>
+    </div>
+
+    <h2 id="pipeline">11. Пайплайн-оператор</h2>
+    <p>
+        Оператор <code>ДАЛЕЕ</code> передаёт значение слева в анонимную функцию справа —
+        как <code>|&gt;</code> в F#. Это упрощает чтение цепочек преобразований.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ модификатор(х){ х * 5 }
+ПУСТЬ результат = 10 ДАЛЕЕ (значение) -> {
+    модификатор(значение)
+}
+вывод(результат)</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let modifier x = x * 5
+let pipeResult = 10 |> (fun v -> modifier v)
+printfn "%A" pipeResult</code></pre>
+        </div>
+    </div>
+
+    <h2 id="combinations">12. Недетерминированные вычисления (List-монада)</h2>
+    <p>
+        Конструкция <code>ВАРИАНТЫ(...)</code> создаёт недетерминированное значение —
+        программа исполняется для каждой комбинации возможных значений. Условие
+        <code>ТРЕБОВАТЬ(...)</code> отсеивает неподходящие варианты. Это удобный способ
+        выразить декартово произведение и фильтрацию.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ х = ВАРИАНТЫ(1, 2, 3)
+ПУСТЬ у = ВАРИАНТЫ(1, 2, 3)
+ТРЕБОВАТЬ(х + у == 4)
+вывод(х)</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let combinations =
+    [ for x in 1..3 do
+        for y in 1..3 do
+            if x + y = 4 then yield x ]
+printfn "%A" combinations</code></pre>
+        </div>
+    </div>
+    <p>
+        В F# подобный эффект достигается через list comprehension с вложенными циклами и условием.
+    </p>
+
+    <h2 id="currying">13. Каррирование и частичное применение</h2>
+    <p>
+        В Глаголице можно применить функцию частично, подставив <code>_</code> вместо ещё
+        не известного аргумента — получится новая функция от оставшихся аргументов.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ вычесть(п, р){ п - р }
+ПУСТЬ отнятьОтДесяти = вычесть(10, _)
+вывод(отнятьОтДесяти(3))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let subtract a b = a - b
+let subtractFromTen = subtract 10
+printfn "%d" (subtractFromTen 3)</code></pre>
+        </div>
+    </div>
+    <p>
+        В F# каррирование автоматическое (все функции каррированы по умолчанию),
+        а в Глаголице оно явное — через placeholder <code>_</code>.
+    </p>
+
+    <h2 id="match">14. Сопоставление с образцом</h2>
+    <p>
+        Сопоставление с образцом — один из самых выразительных приёмов функционального программирования.
+        Глаголица поддерживает шаблоны для литералов, списков и подстановочного знака <code>_</code>.
+    </p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ПУСТЬ описатьЧисло(х){
+    СОПОСТАВИТЬ х С {
+        КОГДА 0 -> { "Это ноль" }
+        КОГДА 1 -> { "Это один" }
+        КОГДА _ -> { "Это другое число" }
+    }
+}
+вывод(описатьЧисло(1))
+
+ПУСТЬ проверитьСписок(сп){
+    СОПОСТАВИТЬ сп С {
+        КОГДА ПУСТО -> { "Список пустой" }
+        КОГДА [голова - хвост] -> { "В списке есть элементы" }
+    }
+}
+вывод(проверитьСписок([1, 2, 3]))</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">let describeNumber x =
+    match x with
+    | 0 -> "Это ноль"
+    | 1 -> "Это один"
+    | _ -> "Это другое число"
+
+printfn "%s" (describeNumber 1)
+
+let checkList lst =
+    match lst with
+    | [] -> "Список пустой"
+    | head :: tail -> "В списке есть элементы"
+
+printfn "%s" (checkList [1; 2; 3])</code></pre>
+        </div>
+    </div>
+
+    <h2 id="import">15. Импорт модулей</h2>
+    <p>
+        Глаголица поддерживает разделение программ на модули с помощью директивы
+        <code>ИМПОРТ</code>. После импорта все функции и значения из подключённого
+        файла становятся доступны в текущем.
+    </p>
+    <p>Файл с функцией:</p>
+<pre><code class="language-glagol">ПУСТЬ факториал(х){
+    ЕСЛИ х == 0 ТО { 1 }
+    ИНАЧЕ { х * факториал(х - 1) }
+}</code></pre>
+    <p>Файл, который импортирует:</p>
+    <div class="pair">
+        <div class="pair-col">
+            <h4>Глаголица</h4>
+<pre><code class="language-glagol">ИМПОРТ ".\examples\Glagol_examples\factorial_for_import.gl"
+
+ПУСТЬ результат = { факториал(5) }
+вывод(результат)</code></pre>
+        </div>
+        <div class="pair-col">
+            <h4>F#</h4>
+<pre><code class="language-fsharp">#load "factorial_for_import.fsx"
+open Factorial_for_import
+
+let result = factorial 5
+printfn "%d" result</code></pre>
+        </div>
+    </div>
+    <p>
+        В Глаголице используется <code>ИМПОРТ "путь/к/файлу.gl"</code>, в F# — директива
+        <code>#load</code> вместе с <code>open</code>.
+    </p>
+
+    <h2>Сводная таблица соответствий</h2>
+    <table>
+        <thead>
+            <tr><th>Конструкция</th><th>Глаголица</th><th>F#</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Объявление значения</td><td><code>ПУСТЬ имя = ...</code></td><td><code>let имя = ...</code></td></tr>
+            <tr><td>Объявление функции</td><td><code>ПУСТЬ ф(х){ ... }</code></td><td><code>let ф x = ...</code></td></tr>
+            <tr><td>Условие</td><td><code>ЕСЛИ ... ТО ... ИНАЧЕ</code></td><td><code>if ... then ... else</code></td></tr>
+            <tr><td>Логические операторы</td><td><code>И</code>, <code>ИЛИ</code>, <code>НЕ</code></td><td><code>&amp;&amp;</code>, <code>||</code>, <code>not</code></td></tr>
+            <tr><td>Литералы</td><td><code>ИСТИНА</code>, <code>ЛОЖЬ</code>, <code>ПУСТО</code></td><td><code>true</code>, <code>false</code>, <code>[]</code></td></tr>
+            <tr><td>Сопоставление</td><td><code>СОПОСТАВИТЬ ... С</code></td><td><code>match ... with</code></td></tr>
+            <tr><td>Шаблон списка</td><td><code>[голова - хвост]</code></td><td><code>head :: tail</code></td></tr>
+            <tr><td>Цикл</td><td><code>ДЛЯ (х В ОТ_ДО(а,б))</code></td><td><code>for x in a..b do</code></td></tr>
+            <tr><td>Пайплайн</td><td><code>значение ДАЛЕЕ ф</code></td><td><code>значение |&gt; ф</code></td></tr>
+            <tr><td>Асинхронность</td><td><code>ФОНОМ({...})</code>, <code>ДОЖДАТЬСЯ</code></td><td><code>async { ... }</code>, <code>RunSynchronously</code></td></tr>
+            <tr><td>Монада успеха</td><td><code>УСПЕХ</code>, <code>ДАЛЕЕ_УСПЕШНО</code></td><td><code>Ok</code>, <code>Result.bind</code></td></tr>
+            <tr><td>Недетерминизм</td><td><code>ВАРИАНТЫ</code>, <code>ТРЕБОВАТЬ</code></td><td>list comprehension с условиями</td></tr>
+            <tr><td>Структурный тип</td><td><code>ТИП И = { поле Тип }</code></td><td><code>type T = { Field: Type }</code></td></tr>
+            <tr><td>Импорт</td><td><code>ИМПОРТ "путь"</code></td><td><code>#load "путь"</code> + <code>open</code></td></tr>
+            <tr><td>Вывод в консоль</td><td><code>вывод(...)</code></td><td><code>printfn "..." ...</code></td></tr>
+            <tr><td>Комментарий</td><td><code>комментарий: ...</code></td><td><code>// ...</code></td></tr>
+        </tbody>
+    </table>
+
+    <h2>Как запускать примеры</h2>
+    <ul>
+        <li>
+            <strong>Глаголица:</strong> запустите интерпретатор языка, передав путь к файлу
+            <code>.gl</code>. Подробности — в разделе
+            <a href="documentation.html#run">Запуск программ</a>.
+        </li>
+        <li>
+            <strong>F#:</strong> достаточно <code>dotnet fsi путь/к/файлу.fsx</code>
+            (требуется установленный .NET SDK).
+        </li>
+    </ul>
+    <p>
+        Все примеры в обеих директориях именованы одинаково, поэтому их легко сопоставлять попарно.
+    </p>
+
+</main>
+
+</body>
+</html>
