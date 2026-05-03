@@ -134,19 +134,6 @@ vsce package</code></pre>
     <p>Получите файл <code>glagol-language-0.0.1.vsix</code>. Установите его так:</p>
 <pre><code class="language-bash">code --install-extension glagol-language-0.0.1.vsix</code></pre>
 
-    <h2>Структура расширения</h2>
-<pre><code class="language-text">extension_vscode/
-├── package.json                       # манифест
-├── language-configuration.json        # скобки, комментарии, отступы
-├── extension.js                       # код активации (команда запуска)
-├── syntaxes/
-│   └── glagol.tmLanguage.json         # грамматика подсветки
-├── icons/
-│   └── glagol-icon-theme.json         # тема иконок файлов
-├── Glagol_logo_png.png                # логотип PNG
-├── Glagol_logo_svg.svg                # логотип SVG
-└── SYNTAX.md                          # описание синтаксиса языка</code></pre>
-
     <h2>Поддерживаемые ключевые слова</h2>
 
     <div class="keyword-group">
@@ -192,14 +179,15 @@ vsce package</code></pre>
     <h2>Команда запуска</h2>
     <p>
         Расширение регистрирует команду <strong>Glagol: Запустить файл Глаголицы</strong>,
-        которая запускает текущий <code>.gl</code>-файл через интерпретатор.
+        которая запускает текущий <code>.gl</code>-файл через интерпретатор. Также заранее проверьте
+        наличие установленного расширения CodeRunner.
         Способы её вызова:
     </p>
     <ul>
-        <li>горячая клавиша <code>Ctrl+Alt+N</code> в открытом <code>.gl</code>-файле,</li>
-        <li>контекстное меню редактора (правый клик по коду),</li>
-        <li>контекстное меню проводника (правый клик по файлу <code>.gl</code>),</li>
-        <li>кнопка ▶ в правом верхнем углу редактора.</li>
+        <li>горячая клавиша <code>Ctrl+Alt+N</code> в открытом <code>.gl</code>-файле</li>
+        <li>контекстное меню редактора (правый клик по коду)</li>
+        <li>контекстное меню проводника (правый клик по файлу <code>.gl</code>)</li>
+        <li>кнопка ▶ в правом верхнем углу редактора</li>
     </ul>
 
     <h2>Что дальше</h2>
